@@ -1,0 +1,108 @@
+[Version]
+Signature="$CHICAGO$"
+DriverVer=11/09/2026,0.01.448
+Class=DISPLAY
+Provider=%MfgName%
+
+[DestinationDirs]
+DefaultDestDir = 11
+OmniNine.Copy     = 11
+OmniNine.Default.Sys = 11
+
+[SourceDisksNames]
+1 = "OmniNine display driver files",,0
+
+[SourceDisksFiles]
+omninine.drv   = 1
+minivdd.vxd = 1
+
+[Manufacturer]
+%MfgName% = OmniNine.Models
+
+[OmniNine.Models]
+%OmniNine.Desc%    = OmniNine.Install, PCI\VEN_121A&DEV_0005&SUBSYS_0061121A
+%OmniNine.Desc%    = OmniNine.Install, PCI\VEN_121A&DEV_0005
+%OmniNine.DescPCI% = OmniNine.Install, PCI\CC_0300
+%OmniNine.DescPCI% = OmniNine.Install, PCI\CC_0301
+%OmniNine.DescPCI% = OmniNine.Install, PCI\CC_0380
+%OmniNine.DescPNP% = OmniNine.Install, *PNP0900
+%OmniNine.DescPNP% = OmniNine.Install, *PNP0917
+%OmniNine.DescAny% = OmniNine.Install, NOPNP
+
+[OmniNine.Install]
+CopyFiles = OmniNine.Copy
+AddReg    = OmniNine.AddReg
+DelReg    = OmniNine.DelReg
+
+[OmniNine.Copy]
+omninine.drv,,,4
+minivdd.vxd,,,4
+
+[OmniNine.DelReg]
+HKR,,Ver
+HKR,,DevLoader
+HKR,DEFAULT
+HKR,MODES
+HKR,CURRENT
+
+[OmniNine.AddReg]
+HKR,,Ver,,4.0
+HKR,,DevLoader,,*vdd
+HKR,,InfPath,,omninine.inf
+HKR,,InfSection,,OmniNine.Install
+HKR,,DeviceDesc,,"Generic VBE (LFB) display adapter"
+HKR,,DriverDesc,,"Generic VBE (LFB) display adapter"
+HKR,,Mfg,,OmniNine
+HKR,,ProviderName,,OmniNine
+HKR,DEFAULT,Mode,,"16,1024,768"
+HKR,DEFAULT,drv,,omninine.drv
+HKR,DEFAULT,vdd,,"*vdd,*vflatd"
+HKR,DEFAULT,minivdd,,minivdd.vxd
+HKR,DEFAULT,RefreshRate,,-1
+HKR,DEFAULT,DDC,,1
+HKR,DEFAULT,ExtModeSwitch,,0
+HKR,"MODES\4\640,480",drv,,vga.drv
+HKR,"MODES\4\640,480",vdd,,*vdd
+HKR,"MODES\8\640,480"
+HKR,"MODES\8\800,600"
+HKR,"MODES\8\1024,768"
+HKR,"MODES\8\1280,1024"
+HKR,"MODES\16\640,480"
+HKR,"MODES\16\800,600"
+HKR,"MODES\16\1024,768"
+HKR,"MODES\16\1280,1024"
+HKR,"MODES\32\640,480"
+HKR,"MODES\32\800,600"
+HKR,"MODES\32\1024,768"
+
+[DefaultInstall]
+CopyFiles = OmniNine.Default.Sys
+AddReg    = OmniNine.Default.Reg
+
+[OmniNine.Default.Sys]
+omninine.drv,,,4
+minivdd.vxd,,,4
+
+[OmniNine.Default.Reg]
+HKLM,"System\CurrentControlSet\Services\Class\Display\0000",Ver,0,"4.0"
+HKLM,"System\CurrentControlSet\Services\Class\Display\0000",DevLoader,0,"*vdd"
+HKLM,"System\CurrentControlSet\Services\Class\Display\0000",InfPath,0,"omninine.inf"
+HKLM,"System\CurrentControlSet\Services\Class\Display\0000",InfSection,0,"OmniNine.Install"
+HKLM,"System\CurrentControlSet\Services\Class\Display\0000",DeviceDesc,0,"Generic VBE (LFB) display adapter"
+HKLM,"System\CurrentControlSet\Services\Class\Display\0000",DriverDesc,0,"Generic VBE (LFB) display adapter"
+HKLM,"System\CurrentControlSet\Services\Class\Display\0000",Mfg,0,"OmniNine"
+HKLM,"System\CurrentControlSet\Services\Class\Display\0000",ProviderName,0,"OmniNine"
+HKLM,"System\CurrentControlSet\Services\Class\Display\0000\DEFAULT",Mode,0,"16,1024,768"
+HKLM,"System\CurrentControlSet\Services\Class\Display\0000\DEFAULT",drv,0,"omninine.drv"
+HKLM,"System\CurrentControlSet\Services\Class\Display\0000\DEFAULT",vdd,0,"*vdd,*vflatd"
+HKLM,"System\CurrentControlSet\Services\Class\Display\0000\DEFAULT",minivdd,0,"minivdd.vxd"
+HKLM,"System\CurrentControlSet\Services\Class\Display\0000\DEFAULT",RefreshRate,0x00010001,0xFFFFFFFF
+HKLM,"System\CurrentControlSet\Services\Class\Display\0000\DEFAULT",DDC,0x00010001,1
+HKLM,"System\CurrentControlSet\Services\Class\Display\0000\DEFAULT",ExtModeSwitch,0x00010001,0
+
+[Strings]
+MfgName      = "OmniNine"
+OmniNine.Desc    = "Generic VBE (LFB) Display Adapter"
+OmniNine.DescPCI = "Generic VBE (LFB) Display Adapter (any PCI display)"
+OmniNine.DescPNP = "Generic VBE (LFB) Display Adapter (VGA compatible)"
+OmniNine.DescAny = "Generic VBE (LFB) Display Adapter (manual select)"

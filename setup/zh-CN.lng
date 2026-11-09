@@ -1,0 +1,29 @@
+ui.title=OmniNine 安装程序 0.01.42 - Windows 95/98/ME
+ui.build=驱动版本:
+ui.rel=发布版（推荐）
+ui.dbg=调试版（较慢，日志详细）
+ui.fixgrp=FIXSYS.SYS（全屏 DOS 盒修复）
+ui.fixchk=安装 FIXSYS.SYS
+ui.fixchk_me=安装 FIXSYS.SYS（Windows ME 不支持）
+ui.dev=DEVICE
+ui.devhigh=DEVICEHIGH（节省内存）
+ui.install=安装
+ui.uninstall=卸载
+ui.exit=退出
+ui.ready=就绪。
+msg.nt=本安装程序仅支持 Windows 95/98/ME。\n不支持 Windows NT/2000/XP 及更高版本。
+msg.me=Windows ME 不支持实模式驱动。\n\nCONFIG.SYS 不再用于加载 DEVICE= 驱动，\n因此无法在本系统安装 FIXSYS.SYS。\n\n安装程序将继续，只安装显示驱动。
+msg.existing=检测到已安装的 OmniNine。\n\n安装程序无法替换正在使用的驱动。\n是否先卸载旧驱动？\n\n（卸载后请重启，然后再次运行安装程序。）
+msg.oldremoved=旧驱动已移除。\n\n请重启，然后再次运行安装程序。
+msg.install_deferred=安装完成。\n\n部分驱动文件正在使用，将在重启时自动替换。\n\n现在重启？
+msg.install_reboot=安装完成。\n\n现在重启？
+msg.uninst_reboot=卸载完成。\n\n现在重启？
+msg.uninst_confirm=卸载 OmniNine 并恢复之前的显示驱动？
+msg.bindfail=驱动文件已安装，但显示设备未能自动绑定到新驱动。\n\n请手动完成：\n设备管理器 → 显示适配器 → 更新驱动程序 → 从列表选择 OmniNine。\n\n然后重启。
+
+ui.layout=布局: rel\omninine.drv（发布） | dbg\omninine.drv（调试） | common\minivdd.vxd、fixsys.sys、omninine.inf
+ui.status.installing=正在安装…
+ui.status.installed_deferred=已安装 —— 需要重启以替换占用中的文件
+ui.status.installed_reboot=已安装 —— 需要重启
+ui.status.uninstalling=正在卸载…
+ui.status.uninstalled_reboot=已卸载 —— 需要重启

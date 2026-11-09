@@ -1,0 +1,89 @@
+;=============================================================================
+;
+;  VBE9X.DEF — display.drv 的模块定义文件(MSVC 1.52 + DDK LINK 5.x 用)
+;
+;  【这个文件的作用】16 位 NE 模块的"户口本":
+;    - LIBRARY DISPLAY   —— 模块名必须是 DISPLAY(GDI 按这个名字认显示
+;      驱动; 也与 INF 里 "HKR,DEFAULT,drv,,omninine.drv" 配合: 文件名随意,
+;      内部模块名必须 DISPLAY)。
+;    - DESCRIPTION 里的 "DISPLAY : 100, 96, 96" 是 GDI 读取的魔数字符串:
+;      宽高比 100、水平 DPI 96、垂直 DPI 96(缺省值, 实际 DPI 在
+;      GDIINFO 里另报)。没有它 GDI 拒绝加载。
+;    - DATA PRELOAD FIXED SINGLE —— 单一固定数据段(DGROUP), 加载即驻留。
+;    - _TEXT PRELOAD SHARED  —— 常驻且全局共享; DrvInitCore 会用
+;      GlobalSmartPageLock 把它整段锁进物理内存(VDD 回调在里面)。
+;    - _INIT PRELOAD MOVEABLE —— 初始化代码, 可移动但不可丢弃。
+;    - EXPORTS 序号是 DDI 契约, 与 GDI 硬编码的调用序号一一对应,
+;      不可改动。NODATA 表示该导出不引用本模块数据段(纯透传)。
+;    - IMPORTS GlobalSmartPageLock=KERNEL.230 —— 半未公开函数
+;      (KB Q180586), 只能按序号导入。
+;    - 【对 DIBENG 零静态导入】全部 DIB 引擎入口由 display.c 的
+;      ResolveDIBEngine() 在初始化时按名字(序号兜底)动态解析,
+;      故 IMPORTS 里不出现 DIBENG —— 与 DIBENG.DLL 的版本彻底解耦
+;      (静态序号导入一旦与本机 DIBENG 不符会被 KRNL386 无声拒载)。
+;
+;=============================================================================
+
+LIBRARY DISPLAY
+
+DESCRIPTION 'DISPLAY : 100, 96, 96 : Generic VBE (LFB) DIB-Engine display driver'
+
+EXETYPE WINDOWS
+
+DATA PRELOAD FIXED SINGLE
+
+SEGMENTS
+    _TEXT       PRELOAD  SHARED
+    _INIT       PRELOAD  MOVEABLE
+
+EXPORTS
+    BitBlt                 @1
+    ColorInfo              @2
+    Control                @3
+    Disable                @4
+    Enable                 @5
+    EnumDFonts             @6
+    EnumObj                @7
+    Output                 @8
+    Pixel                  @9
+    RealizeObject          @10
+    StrBlt                 @11
+    ScanLR                 @12
+    DeviceMode             @13     NODATA
+
+    ExtTextOut             @14
+    GetCharWidth           @15     NODATA
+    DeviceBitmap           @16     NODATA
+    FastBorder             @17
+    SetAttribute           @18     NODATA
+
+    DibBlt                 @19             ; 设备无关位图组
+    CreateDIBitmap         @20
+    DibToDevice            @21
+
+    SetPalette             @22             ; Windows 3.0 调色板组
+    GetPalette             @23
+
+    SetPaletteTranslate    @24
+    GetPaletteTranslate    @25
+    UpdateColors           @26
+    StretchBlt             @27
+    StretchDIBits          @28
+
+    SelectBitmap           @29
+    BitmapBits             @30
+    ReEnable               @31
+
+    Inquire                @101            ; 鼠标光标函数组
+SetCursor              @102
+MoveCursor             @103
+CheckCursor            @104
+
+    GetDriverResourceID    @450            ; 未公开的 USER 回调
+    UserRepaintDisable     @500            ; 未公开的 USER 回调
+
+    ValidateMode           @700            ; Win9x 显示属性对话框查询
+
+; IMPORTS 段: GlobalSmartPageLock=KERNEL.230 已移除 —— 代码段加锁整体
+; 取消(display.c DrvInitCore 注释), C/ASM 侧均无调用点。wlink 以
+; omninine.lnk 为准, 此 .def 供 MSVC LINK 使用, 保持空表。

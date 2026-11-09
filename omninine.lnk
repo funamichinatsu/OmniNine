@@ -1,0 +1,137 @@
+#=============================================================================
+#
+#  VBE9X.LNK — wlink 链接脚本(Open Watcom 路径产出 omninine.drv)
+#
+#  【与 omninine.def 的关系】两者描述的是同一个 NE 模块, 一个给 MSVC 的
+#  LINK 5.x(.def), 一个给 Watcom 的 wlink(本文件)。字段一一对应:
+#    LIBRARY            → option modname
+#    DESCRIPTION        → option description
+#    DATA/SEGMENTS      → segment type data / segment '_TEXT' ...
+#    EXPORTS x.@n       → export x.n
+#    IMPORTS            → import
+#
+#  【对 DIBENG 的静态导入: 仅装载牵引】(./22 实锤后 reversal) 此前
+#  本驱动对 DIBENG 零静态导入, 全部 36 个 DIB 引擎入口由 display.c
+#  的 ResolveDIBEngine() 按名字(序号兜底)动态解析到 g_dibfn[] 表。
+#  但零导入意味着 KERNEL 加载本驱动时不会装入 DIBENG.DLL ——
+#  Enable 期 GetModuleHandle("DIBENG")=0, LoadLibrary 兜底在
+#  KERNEL 内 GP(0d 蓝屏); 而在售参考驱动(vmdisp9x 系列)的导入表
+#  全部静态包含 DIBENG, 靠依赖装载保证时序。
+#  现恢复静态导入, 收敛为只锚定 DIBENG.5(DIB_Enable, 由
+#  vddapi16.asm 的死代码锚点引用, 永不执行); 动态解析仍是全部
+#  实际调用的唯一路径。DIBENG 导出表自 Win95 起冻结(DDK 的
+#  dibeng.lbc 即权威清单), 与 KERNEL/GDI 同类, 版本无关。
+#  旧顾虑"缺任一序号→无声拒载"在单序号锚定下不成立, 且真正的
+#  早期 LoadFail 病根(fixup 越界)早已另证与 DIBENG 无关。
+#
+#  【入口地址】没有 start= 指令: 模块入口由 vddapi16.asm 末尾的
+#  "END DriverInit" 决定(NE 头起始 CS:IP = DriverInit)。
+#
+#  【clibm.lib】Open Watcom 的 16 位中模型 Windows C 运行库
+#  (%WATCOM%\lib286\win\clibm.lib): 提供 int86/int86x/segread/
+#  _fmemset/_fmemcpy 等。用 library path 前缀或直接拷贝到本目录均可。
+#
+#  【坑: wstart/main_ 被误拉入】display.c 的 __huge 指针算术需要运行库
+#  辅助 __PIA, __PIA 又引用 __HShift; 而 clibm.lib 中只有 Win16 EXE
+#  启动模块 wstart(wmain.c)定义 __HShift——它被拉入会自带起始地址
+#  (与 vddapi16.asm 的 END DriverInit 冲突 → E2030)并级联引用
+#  WinMain/main(→ E2028 main_ undefined)。drv.c 里已自行定义
+#  "uint8_t _HShift = 3;"(保护模式值), 切断该依赖链; 链接结果中
+#  不应出现 wstart/wmain/libentry 模块(可在 omninine.map 检查)。
+#
+#=============================================================================
+
+system windows dll initglobal
+
+file display.obj
+file drv.obj
+file vddapi16.obj
+
+name omninine.drv
+option map=omninine.map
+
+library clibm.lib
+library dibeng.lib
+
+option modname=DISPLAY
+option description 'DISPLAY : 100, 96, 96 : Generic VBE (LFB) DIB-Engine display driver.'
+option oneautodata
+
+# 【数据段必须 FIXED】对应 omninine.def 的 "DATA PRELOAD FIXED SINGLE"。
+# 注意语法: wlink 的 SEGMENT 指令按段名或类名匹配, "class 'DATA'"
+# 覆盖 CONST/CONST2/_DATA; 写成 "type data" 在本 wlink 版本上不生效
+# (数据段会被链成 MOVABLE, 与 def 不一致)。_TEXT/_INIT 保持 MOVEABLE:
+# 保护模式下段移动对软件透明, 与 def 的 SEGMENTS 节一致。
+# 【r118 实测 —— 不要随手把 _TEXT 改成 FIXED】DDK 对模式恢复回调确有
+# 硬要求("must be placed in a FIXED code segment"), 但把本行改成
+# "preload + fixed + shared" 的写法会让 wlink24 把代码段【重新切分】:
+#   r117: 2 段 (code 26854 + data 3290)          release 32630 B
+#   r118: 4 段 (92 + 12218 + 14556 + data 3402)  release 34230 B (+1600)
+# 段属性字没变(0x0D70/0x0C61), 变的是分段本身 —— 那不是"一个属性"的改动,
+# 而是链接器层面的重构。按"一轮一个变量"的纪律, 该实验已在 r118 回退,
+# 留给 r119 单独做(要么这条, 要么用 GlobalSmartPageLock 把 _TEXT 钉住,
+# 两条各跑一轮 A/B)。
+segment class 'DATA' preload fixed
+segment '_TEXT'  preload shared
+segment '_INIT'  preload moveable
+# 【r126 试过并撤回: 给 VBE9XCB 单开一段并标 FIXED】
+#   DDK 确实要求主 VDD 回调 ResetHiResMode 所在代码段是 FIXED(原文见
+#   VDD_DRIVER_REGISTER 页: "must be placed in a FIXED code segment")。
+#   display.c 已用 #pragma code_seg("VBE9XCB") 把那一个函数单独放进一段。
+#   但【在本工具链上无法把该段标成 FIXED】, 试过两条路都不行:
+#     · 在 omninine.lnk 里给该段写 preload + fixed 两词
+#       -> NE 段属性字节仍是 0x0D60(FIXED 位没置上), 而且它把段组拆开了:
+#          NE 段数 2 → 4, 文件 76236 → 79656 字节(+3420)。
+#          与 r118 把 _TEXT 改 fixed 是同一个失败形态。
+#     · 在 omninine.def 里写 SEGMENTS 同理(该文件是 MSVC 路线的, wlink 不走它)。
+#   所以这里【故意不写那一行】。
+#   【pragma 那条也一并撤回】display.c 里那对 #pragma code_seg 虽然在语法上
+#   生效(能单独分出 VBE9XCB 段), 但它把 display_TEXT 排到了 _TEXT 之前,
+#   改变了链接器的段合并方式: debug +16 / MIN +32 / release +48 字节, 而
+#   release 里没有任何版本字符串 —— 那 48 字节纯粹是分段结构变化买来的,
+#   FIXED 位却依然置不上。收益可证为零、代价可证非零, 故 r126 净改动为零。
+#   真要满足 FIXED, 剩下的路是运行期手段: GlobalSmartPageLock 把该段钉住
+#   —— 但 DIBENG 那次实测表明缺 32 位库时相关导入会有麻烦, 留作单独一轮。
+
+export BitBlt.1
+export ColorInfo.2
+export Control.3
+export Disable.4
+export Enable.5
+export EnumDFonts.6
+export EnumObj.7
+export Output.8
+export Pixel.9
+export RealizeObject.10
+export StrBlt.11
+export ScanLR.12
+export DeviceMode.13
+export ExtTextOut.14
+export GetCharWidth.15
+export DeviceBitmap.16
+export FastBorder.17
+export SetAttribute.18
+export DibBlt.19
+export CreateDIBitmap.20
+export DibToDevice.21
+export SetPalette.22
+export GetPalette.23
+export SetPaletteTranslate.24
+export GetPaletteTranslate.25
+export UpdateColors.26
+export StretchBlt.27
+export StretchDIBits.28
+export SelectBitmap.29
+export BitmapBits.30
+export ReEnable.31
+export Inquire.101
+export SetCursor.102
+export MoveCursor.103
+export CheckCursor.104
+export GetDriverResourceID.450
+export UserRepaintDisable.500
+export ValidateMode.700
+
+# GlobalSmartPageLock 导入已移除(代码段加锁整体取消, 见 display.c
+# DrvInitCore 注释); 且 C 侧已无任何调用点, 留着只是往导入表里
+# 多塞一条死序号。

@@ -1,0 +1,49 @@
+/*=============================================================================
+ *
+ *  VBE9X.RC —— omninine.drv 的资源脚本(构建期由 wrc 挂入 NE 模块)
+ *
+ *  【这个文件为什么必须存在】Open Watcom 的 wlink 在模块【没有任何资源】
+ *  时不会在 NE 头里生成资源表, 而是让"资源表偏移"字段(NE+0x24)直接
+ *  指向下一张表(驻留名表)。Win9x 的 KRNL386 加载 NE 模块时会遍历资源
+ *  表(需要把每条资源记录里的段号换算成实际选择子), 于是从驻留名表的
+ *  "DISPLAY" 字符串开始按垃圾数据解析, 判定"可执行文件损坏" →
+ *  bootlog: LoadFail = omninine.drv Failure code is 0000, 模块入口根本
+ *  不会被调用。Win98SE/WinME 行为完全一致; 能正常加载的 VGA.DRV 与
+ *  vmdisp9x 的驱动都有真实的资源表(vmdisp9x 构建流程里有一步 wrc)。
+ *
+ *  ---------------------------------------------------------------------------
+ *  【r78 新增: 补齐显示驱动该有的 oembin 资源】
+ *
+ *  在售参考驱动(boxv9x / vmdisp9x 系列)的 display.rc 内容如下, 注释原文
+ *  是 "Most of the contents is defined by backward compatibility
+ *  requirements. Much of the detail is explained in the Windows 3.x and
+ *  2.x DDKs." —— 即 Win9x 的 USER/GDI 仍然会去取这些资源:
+ *
+ *      1     oembin  PRELOAD   config.bin     CONFIG(界面度量+默认系统色)
+ *      2     oembin            colortab.bin   控制面板 48 色表
+ *      3     oembin  PRELOAD   fonts.bin      96dpi 字体模板
+ *      fonts oembin            fonts.bin      同上(按名字再挂一份)
+ *      2003  oembin  PRELOAD   fonts120.bin   120dpi 字体模板
+ *
+ *  r77 及之前本驱动只有下面那个占位 RCDATA —— 显示驱动该有的 oembin
+ *  资源一个都没有, 而 USER 恰好在"显示驱动 Enable 之后、进入
+ *  Display Resources 阶段之前"读它们。这是本轮补上的最关键差异。
+ *
+ *  config/colortab 两份 .bin 已随包提供(98 / 194 字节, 由 res_config.c、
+ *  res_colortab.c 经 "wlink ... output raw" 生成, 配方见这两个 .c 文件
+ *  的头注)。字体模板(fonts.bin/fonts120.bin)【本轮故意不带】: 它是
+ *  由编译器对"柔性数组 LOGFONT"算出的结构长度决定的, 长度算错会让 GDI
+ *  按错误步长走表 —— 宁可让 GDI 走 .FON 回退(实测会去载 vgasys.fon /
+ *  sserife.fon), 也不要塞一份长度可疑的表进去。
+ *
+ *===========================================================================*/
+
+/* 占位资源: 保证 wlink/wrc 生成正常的 NE 资源表(见上), 内容无人读取 */
+OMNININESTUB RCDATA
+BEGIN
+    "OmniNine"
+END
+
+/* --- 显示驱动标准资源(向后兼容) ------------------------------------- */
+1     oembin  PRELOAD   res_config.bin
+2     oembin            res_colortab.bin

@@ -1,0 +1,32 @@
+;=============================================================================
+; MINIVDD.DEF — MS LINK(-vxd)的模块定义文件
+;
+; 【为什么必须有这个文件】Declare_Virtual_Device 宏在 minivdd.obj 里生成
+; 公开符号 MINIVDD_DDB(设备描述块; 宏命名规则 = 设备名 + "_DDB", 无 C
+; 风格前导下划线); 但 VxD 加载器不扫描符号表 —— 它按 LE 入口表序号 1
+; 取 DDB 地址。只有这里 EXPORTS MINIVDD_DDB @1 才会在入口表建立条目。
+; 缺了它: 链接照常成功、MZ/LE 头部完全正常, 但加载即报
+;   "Dynamic load failed minivdd.vxd: Not a valid device - possibly corrupt"
+;
+; 【SEGMENTS 为何也要写】VxD 加载器逐个检查 object(段)的类型标志,
+; 任何一个不在许可清单内(或装 DDB 的段是可丢弃类型)都判整个驱动非法,
+; 报的就是上面那句 "Not a valid device"。显式声明段属性, 保证与 DDK
+; 示例产物的装载期环境一致:
+;   _LTEXT/_LDATA 常驻: PRELOAD NONDISCARDABLE(DDB 所在段绝不可丢弃)
+;   _ITEXT/_IDATA 仅初始化期使用: DISCARDABLE
+; (列了而目标文件里不存在的段, LINK 只是忽略, 最多刷一条无害警告。)
+;
+; VXD 语句的 DYNAMIC 关键字: 声明本设备可动态加载/卸载
+; (INF 的 DevLoader=*vdd 走的正是动态加载路径)。
+;=============================================================================
+VXD     MINIVDD DYNAMIC
+DESCRIPTION 'Generic VBE Mini-VDD'
+
+SEGMENTS
+    _LTEXT  CLASS 'LCODE'  PRELOAD NONDISCARDABLE
+    _LDATA  CLASS 'LCODE'  PRELOAD NONDISCARDABLE
+    _ITEXT  CLASS 'ICODE'  DISCARDABLE
+    _IDATA  CLASS 'ICODE'  DISCARDABLE
+
+EXPORTS
+        MINIVDD_DDB     @1
